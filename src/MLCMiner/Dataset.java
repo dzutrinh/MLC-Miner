@@ -9,27 +9,27 @@ import java.util.List;
 //This class represents a quantitative database
 public class Dataset {
 	
-	List<Transaction> transactions;						// the list of transactions in this dataset
-	private int maxItem = 0;							// the largest item name
-	private long maxTransLength = 0;					// longest transaction length
-	private long sumTransLength = 0;					// total transactions length
+	List<Transaction> transactions;	
+	private int maxItem = 0;
+	private long maxTransLength = 0;
+	private long sumTransLength = 0;
 	public long sumUtility = 0;
 
 	// main constructor
     public Dataset(String datasetPath, int maximumTransactionCount) throws IOException {
 
-        transactions = new ArrayList<Transaction>();	// Initialize a list to store transactions in memory
+        transactions = new ArrayList<Transaction>();
         BufferedReader br = new BufferedReader(new FileReader(datasetPath));
         String line;
         int i = 0;
 
         while((line = br.readLine()) != null) { 
-			if (line.isEmpty() == true || 				// bypass comments and empty lines
+			if (line.isEmpty() == true ||
 				line.charAt(0) == '#' ||  
 				line.charAt(0) == '@') continue;
 			i++;
-			transactions.add(createTransaction(line));	// read the transaction
-	    	if(i == maximumTransactionCount) break;		// prevent exceeding the number of transactions
+			transactions.add(createTransaction(line));
+	    	if(i == maximumTransactionCount) break;
         }
         br.close();
     }

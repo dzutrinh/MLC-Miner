@@ -12,83 +12,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- 	 _____ __    _____     _____ _             
-	|     |  |  |     |___|     |_|___ ___ ___ 
-	| | | |  |__|   --|___| | | | |   | -_|  _|
-	|_|_|_|_____|_____|   |_|_|_|_|_|_|___|_|  
-                                           
-	MLC-Miner: Multi-Level Closed high utility itemset Miner
-
-	This algorithm extract multi-level closed high-utility itemsets from hierarchical datasets
-	Author: Trinh D.D. Nguyen (dzutrinh at gmail dot com)
-	
-	Version 1.4a
-	Last update: Feb, 2024
-
-	Variations:
-	- MLC-Miner      = CHUI-Miner + Taxonomy + RUCK 
-	- MLC-Miner-EUCP = CHUI-Miner + Taxonomy + RUCK + ML-EUCP
-	
-	Changes:
-	- Feb, 2022: v1.0  - Initial development, the algorithm is now known as CHUI-Miner**
-	- Apr, 2022: v1.1  - Code cleanup, EUCP added, renamed to MLC-Miner.  
-	- Jul, 2022: v1.2  - Better subsumption check, significantly boost the mining time. 
-	- Aug, 2022: v1.3  - Code cleanup and some optimizations. 
-	- Nov, 2023: v1.4  - Introducing Utility Map (UM), completely replacing Utility List.
-					   - Even faster RUCK, hence major speed improvement
-					   - EUCP is now extended into ML-EUCP, reducing memory usage
-					   - Capable of handling datasets with 5M transactions
-	- Feb, 2024: v1.4a - Faster construction of revised transactions 
-	
-	Dependencies: 
-		- Dataset
-		- Transaction 
-		- Taxonomy 
-		- Element 
-		- UtilityMap
-		- EUList
-		
-	Baseline algorithms:
-		- CHUIMiner* (CHUIMinerMK2)
-			. Taxonomy-enabled CHUI-Miner
- **/
-
 // MLC-Miner algorithm
 public class AlgoMLCMiner {
 	
-	public long	timerStart = 0;						// time stamps for benchmarking purpose 
+	public long	timerStart = 0;
 	public long	timerStop = 0; 							
-	public int		patternCount = 0; 				// multi-level HUIs found
-	public int		candidateCount = 0;				// candidate high-utility itemsets counter
-	public int		transCount = 0;					// number of transactions
-	public double	minUtil = 0.0;					// minimum utility
+	public int		patternCount = 0;
+	public int		candidateCount = 0;
+	public int		transCount = 0;
+	public double	minUtil = 0.0;
 
-	public boolean	useEUCPstrategy = true;			// EUCP pruning flag
+	public boolean	useEUCPstrategy = true;
 	
-	Map<Integer, Integer> mapItemToLevel;			// Item -> level hashmap
-	Map<Integer, List<Integer>> mapItemToAncestor;	// Real taxonomy hashmap
+	Map<Integer, Integer> mapItemToLevel;
+	Map<Integer, List<Integer>> mapItemToAncestor;
 	
-	BufferedWriter		writer = null;				// file writer  
-	Taxonomy			taxonomy = null;			// for describing the taxonomy of a dataset
-	Dataset				dataset = null;				// quantitative transaction dataset
-	ArrayList<int[]>	oldNameToNewNamesPerLevel;	// old name to new name mappings
-	ArrayList<int[]>	newNamesToOldNamesPerLevel;	// new name to old name mappings
+	BufferedWriter		writer = null;
+	Taxonomy			taxonomy = null;
+	Dataset				dataset = null;
+	ArrayList<int[]>	oldNameToNewNamesPerLevel;
+	ArrayList<int[]>	newNamesToOldNamesPerLevel;
 	List<Map<Integer, Map<Integer, Double>>> EUCSPerLevel;	
 	
-	ArrayList<EUList>	EULPerLevel;				// EU-List for all taxonomy levels
-	double[] 			GWUs;						// storing TWU/GWU for each item
-	int 				itemsCountPerLevel[];		// total items at each level
+	ArrayList<EUList>	EULPerLevel;
+	double[] 			GWUs;
+	int 				itemsCountPerLevel[];
 
 	public boolean		debugging = false;
 	
-	// represents an item and its utility in a transaction
 	class Pair {
 		int item = 0;
 		double utility = 0.0;
 	}
 
-	// constructors
 	public AlgoMLCMiner(boolean useEUCP) {
 		useEUCPstrategy = useEUCP;
 	}
@@ -97,20 +53,8 @@ public class AlgoMLCMiner {
 		useEUCPstrategy = true;
 	}
 
-	// ----------------------
-	// MLC-MINER ALGORITHM
-	// ----------------------
-	// Params:
-	//	- inputTransaction	[REQ]: source dataset containing transactions
-	//	- inputTaxonomy		[REQ]: taxonomy of the given dataset
-	//	- output			[OPT]: file to store the discovered patterns, null = no output.
-	//	- minUtility		[REQ]: minimum utility threshold
-	//  - maxTrans			[REQ]: total number of transaction to load (for scalability test)
-	// Returns: None
-	
 	public void runAlgorithm(String inputTransaction, String inputTaxonomy, String output, double minUtility, int maxTrans) throws IOException {
 		
-		// initializations
 		minUtil				= minUtility;
 		mapItemToLevel		= new HashMap<Integer, Integer>();
 		mapItemToAncestor	= new HashMap<Integer, List<Integer>>();
@@ -126,14 +70,12 @@ public class AlgoMLCMiner {
 
 		timerStart = System.currentTimeMillis();
 		
-		// First dataset scan to calculate the TWU for each item.
 		System.out.println("- First dataset scan...");		
 		dataset = new Dataset(inputTransaction, maxTrans);	// should perform similar transaction merging here, too		
 		transCount = dataset.getTransactions().size();
 		taxonomy = new Taxonomy(inputTaxonomy, dataset);		
 		int maxLevel = scanDatabaseFirstTime();	// taxonomy's depth
 				
-		// promising items per level
 		ArrayList<ArrayList<Integer>> itemsToKeepPerLevel = new ArrayList<ArrayList<Integer>>();
 		itemsCountPerLevel = new int[maxLevel];
 		for (int i = 0; i < maxLevel; i++)
@@ -163,19 +105,17 @@ public class AlgoMLCMiner {
 			int[] newNamesToOldNames = new int[dataset.getMaxItem() + 1];
 			int currentName = 1;
 
-			for (int j = 0; j < itemsPerLevel; j++) {	// for each item in increasing order of GWU				
-				int item = itemsToKeep.get(j);			// get the item old name
-				oldNameToNewNames[item] = currentName;	// give it the new name
-				newNamesToOldNames[currentName] = item;	// remember its old name
-				itemsToKeep.set(j, currentName);		// replace old name by the new name in the list of promising items
-				currentName++;							// increment the current name
+			for (int j = 0; j < itemsPerLevel; j++) {
+				int item = itemsToKeep.get(j);		
+				oldNameToNewNames[item] = currentName;
+				newNamesToOldNames[currentName] = item;
+				itemsToKeep.set(j, currentName);
+				currentName++;
 			}
 			oldNameToNewNamesPerLevel.add(oldNameToNewNames);
 			newNamesToOldNamesPerLevel.add(newNamesToOldNames);
 		}
 		
-		// for faster accessing the utility lists, they are are stored using map as pair: 
-		// <K: item; V: utility map associated to that item>
 		Map<Integer, UtilityMap> mapItemToUM = new HashMap<Integer, UtilityMap>();
 		for (int i = 0; i < maxLevel; i++) {
 			ArrayList<Integer> itemsToKeep = itemsToKeepPerLevel.get(i);
@@ -275,7 +215,6 @@ public class AlgoMLCMiner {
 		System.out.println("- Done.");
 	}
 	
-	// First database scan to compute GWUs and determine the taxonomy's depth
 	private int scanDatabaseFirstTime() {
 		int maxLevel = 0;	
 		GWUs = new double[dataset.getMaxItem() + 1];
@@ -464,16 +403,11 @@ public class AlgoMLCMiner {
 	
 	private boolean isDuplicate(UtilityMap tidset, EUList prevset) {
 		int tidsupp = tidset.getSupport();
-		// Optimization 1a
 		if (prevset.getMaxSupport() < tidsupp) return false;
 		int size = prevset.size();
 		for (int i = 0; i < size; i++) {		// L25: for each utility list in prevset
 			UtilityMap ul = prevset.get(i);
-			
-			// Optimization 1b: best on long and dense datasets
-			if (ul.getSupport() < tidsupp) continue;
-	
-			// Optimization 2: if tidset of newgen is included in tids of parent, subsumed
+			if (ul.getSupport() < tidsupp) continue;	
 			if (isSubsumed(tidset, ul)) return true;
 		}
 		return false; // not subsumed, complexity: O(|prevset|x|tidset|)		
@@ -575,10 +509,7 @@ public class AlgoMLCMiner {
 				int i = j - 1;
 				Integer itemI = items.get(i);
 
-				// we compare the twu of items i and j
 				double comparison = ArrayTWU[itemI] - ArrayTWU[itemJ];
-				// if the twu is equal, we use the lexicographical order to decide whether i is
-				// greater than j or not.
 				if (comparison == 0) {
 					comparison = itemI - itemJ;
 				}
@@ -587,14 +518,10 @@ public class AlgoMLCMiner {
 					items.set(i + 1, itemI);
 
 					i--;
-					if (i < 0) {
-						break;
-					}
+					if (i < 0) break;
 
 					itemI = items.get(i);
 					comparison = ArrayTWU[itemI] - ArrayTWU[itemJ];
-					// if the twu is equal, we use the lexicographical order to decide whether i is
-					// greater than j or not.
 					if (comparison == 0) {
 						comparison = itemI - itemJ;
 					}

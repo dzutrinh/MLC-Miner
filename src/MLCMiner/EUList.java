@@ -3,14 +3,7 @@ package MLCMiner;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Represents a EU-List structure, used by the MLC-Miner algorithm.
- * List of utility maps
- *
- * @see MLC-Miner
- * @see UtilityMap
- * @author Trinh D.D. Nguyen
- */
+// Represents a EU-List structure, used by the MLC-Miner algorithm.
 public class EUList {
 	
 	public List<UtilityMap> list;

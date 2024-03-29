@@ -5,7 +5,6 @@ import java.util.HashMap;
 //	UtilityMap
 //	----------
 //	UtilityMap structure, Utility-List and P-Set hybrid
-//
 //	Coded by Trinh D.D. Nguyen, 
 public class UtilityMap {
 	int		item;  			// the item
