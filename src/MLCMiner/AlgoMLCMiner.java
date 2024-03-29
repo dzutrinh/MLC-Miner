@@ -383,7 +383,7 @@ public class AlgoMLCMiner {
 		return xy;
 	}
 		
-	// Y = X ∪ {i}
+	// Y = X \cup {i}
 	private int[] appendItem(int[] itemset, int item) {
 		int [] newgen = new int[itemset.length+1];
 		System.arraycopy(itemset, 0, newgen, 0, itemset.length);
@@ -391,12 +391,11 @@ public class AlgoMLCMiner {
 		return newgen;
 	}
 
-	// check for if newtid is subsumed by parent: TidSet(newtid) ⊆ TidSet(parent)
+	// check for if newtid is subsumed by parent: TidSet(newtid) \subseteq TidSet(parent)
 	private boolean isSubsumed(UtilityMap newtid, UtilityMap parent) {
-		for (Integer i : newtid.mapElements.keySet()) {		// if newtid.keySet() ⊆ parent.keySet() ?
-			if (!parent.hasTID(i)) {		// O(1)
+		for (Integer i : newtid.mapElements.keySet()) {	 // if newtid.keySet() \subseteq parent.keySet() ?
+			if (!parent.hasTID(i))		// O(1)
 				return false;
-			}
 		}
 		return true;
 	}
@@ -418,7 +417,7 @@ public class AlgoMLCMiner {
 		return	(ul != null) &&  (minUtil <= ul.sumIutils + ul.sumRutils);
 	}
 
-	// test if y ⊆ x
+	// test if y \subseteq x
 	private boolean hasAllTIDS(UtilityMap x, UtilityMap y) {
 		int ysize = y.getSupport();
 		if (x.getSupport() < ysize) return false;
@@ -502,6 +501,7 @@ public class AlgoMLCMiner {
 		System.out.println("=====================================================");
 	}
 	
+	// insertion sort
 	public static void sort(ArrayList<ArrayList<Integer>> itemList, double[] ArrayTWU) {
 		for (List<Integer> items : itemList) {
 			for (int j = 1; j < items.size(); j++) {
