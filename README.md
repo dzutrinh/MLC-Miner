@@ -1,10 +1,9 @@
 # MLC-Miner
- Multi-level Closed High-Utility Pattern Miner
+Multi-level Closed High-Utility Pattern Miner
 
 ## Folder structure
 
-- `src`: Source code of the algorithm `MLC-Miner` and `CHUI-Miner*`
-
+- `build`: The executable of the algorithm `MLC-Miner`.
 - `taxonomy`: synthesized taxonomy of the databases used in the work. Databases with real taxonomies can be obtained from the SPMF website.
 
 ## Requirements
@@ -12,10 +11,22 @@
 - An IDE (such as NetBeans or Eclipse) to import the whole project
 
 ## How to run
-* Within each algorithm, there is a test drive called `TestXXXX.java`. 
-* Changing database: replace the value of the `dataset` variable with your desire dataset. The driver will automatically append the `_tax.txt` and `_trans.txt` suffixes. 
-* Each databases must comes in two separated file: one containing the transactions, which name ends with `_trans.txt`. The other contains the related taxonomy of items, which name ends with `_tax.txt`. These two files should be place on top level of the package folder structure, outside the `src` folder. The format of both transaction database and the taxonomy strictly follow the SPMF format.
-* Use the `minutil` variable to specify the minimum utility threshold. The values should be the exact threshold to be used, no relative (percentages).
+
+`java -jar build/mlcminer.jar --dataset sample --minutil 50 --eucp true --output result.txt`
+
+or
+
+`java -jar build/mlcminer.jar --trans sample_trans.txt --tax sample_tax.txt --minutil 30`
+
+## Parameters
+- `--dataset <name> (produces <name>_trans.txt and <name>_tax.txt)`
+- `--trans <file>`
+- `--tax <file>`
+- `--minutil <value>`
+- `--eucp <true|false>`
+- `--output <file>`
+- `--maxtrans <number>`
+- `-h / --help`
 
 ## License
-The source code is released under GNU GPLv3.
+GNU GPLv3.
